@@ -1,5 +1,6 @@
 ﻿using API.Data;
 using API.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -22,6 +23,7 @@ namespace API.Controllers
         /// </summary>
         /// <returns>List of all users</returns>
         [HttpGet]
+        [AllowAnonymous]
         public async Task<List<AppUser>> GetUsers()
         {
 
@@ -34,6 +36,7 @@ namespace API.Controllers
         /// <param name="id">Id of a specific user</param>
         /// <returns>The data fro the </returns>
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<AppUser> GetUser(int id)
         {
 

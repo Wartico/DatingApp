@@ -1,5 +1,6 @@
 ﻿using API.Data;
 using API.Entities;
+using API.Interface;
 using API.Requests;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,15 +17,18 @@ namespace API.Controllers
     public class AccountController : BaseApiController
     {
         private readonly DataContext _context;
-        public AccountController(DataContext context)
+        private readonly ITokenService _tokenService;
+
+        public AccountController(DataContext context, ITokenService tokenService)
         {
             _context = context;
+            _tokenService = tokenService;
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<AppUser>> Regisger(NewRegisterRequest newRegisterRequest)
+        public async Task<ActionResult<UserResponse>> Regisger(NewRegisterRequest newRegisterRequest)
         {
-
+            
             if (await UsersExists(newRegisterRequest.UserName)) return BadRequest("Username is taken");
 
             using var hmac = new HMACSHA512();
@@ -41,7 +45,36 @@ namespace API.Controllers
 
             await _context.SaveChangesAsync();
 
-            return user;
+            return new UserResponse
+            {
+                UserName = user.UserName,
+                Token = _tokenService.CreateToken(user)
+            };
+        }
+
+        [HttpPost("Login")]
+        public async Task<ActionResult<UserResponse>> Login(LoginRequest loginRequest)
+        {
+            var user = await _context.Users
+                .Where(x => x.UserName == loginRequest.UserName.ToLower())
+                .SingleOrDefaultAsync();
+
+            if (user == null) return Unauthorized("Invalid username");
+
+            using var hmac = new HMACSHA512(user.PasswordSalt);
+
+            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(loginRequest.Password));
+
+            for(int i = 0; i < computedHash.Length; i++)
+            {
+                if (computedHash[i] != user.PasswordHash[i]) return Unauthorized("Invalid password");
+            }
+
+            return new UserResponse
+            {
+                UserName = user.UserName,
+                Token = _tokenService.CreateToken(user)
+            }; ;
         }
 
         private async Task<bool> UsersExists(string userName)
