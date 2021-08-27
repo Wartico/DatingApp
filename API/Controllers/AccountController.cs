@@ -1,7 +1,7 @@
 ﻿using API.Data;
 using API.Entities;
 using API.Interface;
-using API.Requests;
+using API.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +26,7 @@ namespace API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<UserResponse>> Regisger(NewRegisterRequest newRegisterRequest)
+        public async Task<ActionResult<UserResponse>> Register(NewRegisterRequest newRegisterRequest)
         {
             
             if (await UsersExists(newRegisterRequest.UserName)) return BadRequest("Username is taken");
