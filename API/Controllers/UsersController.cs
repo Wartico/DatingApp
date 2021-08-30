@@ -1,21 +1,24 @@
 ﻿using API.Data;
-using API.Entities;
+using API.Interface;
+using API.Models;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace API.Controllers
 {
+    [Authorize]
     public class UsersController : BaseApiController
     {
-        private readonly DataContext _context;
-        public UsersController(DataContext context)
+        private readonly IUserRepository _userRepository;
+        private readonly IMapper _mapper;
+
+        public UsersController(IUserRepository userRepository, IMapper mapper)
         {
-            _context = context;
+            _userRepository = userRepository;
+            _mapper = mapper;
         }
 
         /// <summary>
@@ -23,24 +26,26 @@ namespace API.Controllers
         /// </summary>
         /// <returns>List of all users</returns>
         [HttpGet]
-        [AllowAnonymous]
-        public async Task<List<AppUser>> GetUsers()
+        public async Task<ActionResult<IEnumerable<MemberResponse>>> GetUsers()
         {
+            var users = await _userRepository.GetMembersAsync();
 
-            return await _context.Users.ToListAsync();
+            var usersToReturn = _mapper.Map<IEnumerable<MemberResponse>>(users);
+
+            return Ok(usersToReturn);
         }
 
         /// <summary>
         /// Get a specific users
         /// </summary>
-        /// <param name="id">Id of a specific user</param>
+        /// <param name="userName">User name of a specific user</param>
         /// <returns>The data fro the </returns>
-        [HttpGet("{id}")]
-        [Authorize]
-        public async Task<AppUser> GetUser(int id)
+        [HttpGet("{userName}")]
+        
+        public async Task<ActionResult<MemberResponse>> GetUser(string userName)
         {
-
-            return await _context.Users.FindAsync(id);
+            return await _userRepository.GetMemberAsync(userName);
         }
+
     }
 }

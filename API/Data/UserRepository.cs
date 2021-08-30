@@ -1,0 +1,68 @@
+﻿using API.Entities;
+using API.Interface;
+using API.Models;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace API.Data
+{
+    public class UserRepository : IUserRepository
+    {
+        private readonly DataContext _context;
+        private readonly IMapper _mapper;
+
+        public UserRepository(DataContext context, IMapper mapper)
+        {
+            _context = context;
+            _mapper = mapper;
+        }
+
+        public async Task<MemberResponse> GetMemberAsync(string userName)
+        {
+            return await _context.Users
+                .Where(x => x.UserName == userName)
+                .ProjectTo<MemberResponse>(_mapper.ConfigurationProvider)
+                .SingleOrDefaultAsync();
+        }
+
+        public async Task<IEnumerable<MemberResponse>> GetMembersAsync()
+        {
+            return await _context.Users
+                .ProjectTo<MemberResponse>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+        }
+
+        public async Task<AppUser> GetUserByIdAsync(int id)
+        {
+            return await _context.Users.FindAsync(id);
+        }
+
+        public async Task<AppUser> GetUserByUserNameAsync(string userName)
+        {
+            return await _context.Users
+                .Include(x => x.Photos)
+                .SingleOrDefaultAsync(x => x.UserName == userName);
+        }
+
+        public async Task<IEnumerable<AppUser>> GetUsersAsync()
+        {
+            return await _context.Users
+                .Include(x => x.Photos)
+                .ToListAsync();
+        }
+
+        public async Task<bool> SaveAllAsync()
+        {
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public void Update(AppUser user)
+        {
+            _context.Entry(user).State = EntityState.Modified;
+        }
+    }
+}
