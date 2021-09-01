@@ -44,7 +44,7 @@ namespace API.Controllers
 
             return new UserResponse
             {
-                UserName = user.UserName,
+                Username = user.UserName,
                 Token = _tokenService.CreateToken(user)
             };
         }
@@ -69,7 +69,7 @@ namespace API.Controllers
 
             return new UserResponse
             {
-                UserName = user.UserName,
+                Username = user.UserName,
                 Token = _tokenService.CreateToken(user)
             }; ;
         }
