@@ -1,8 +1,11 @@
 ﻿using API.Data;
+using API.Entities;
+using API.Extensions;
 using API.Interface;
 using API.Models;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -15,11 +18,13 @@ namespace API.Controllers
     {
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
+        private readonly IPhotoService _photoService;
 
-        public UsersController(IUserRepository userRepository, IMapper mapper)
+        public UsersController(IUserRepository userRepository, IMapper mapper, IPhotoService photoService)
         {
             _userRepository = userRepository;
             _mapper = mapper;
+            _photoService = photoService;
         }
 
         /// <summary>
@@ -41,7 +46,7 @@ namespace API.Controllers
         /// </summary>
         /// <param name="userName">User name of a specific user</param>
         /// <returns>The data fro the </returns>
-        [HttpGet("{userName}")]
+        [HttpGet("{userName}", Name = "GetUser")]
         
         public async Task<ActionResult<MemberResponse>> GetUser(string userName)
         {
@@ -52,8 +57,7 @@ namespace API.Controllers
         [HttpPut]
         public async Task<ActionResult> UpdateUser(MemberUpdateRequest memberUpdateRequest)
         {
-            var username = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var user = await _userRepository.GetUserByUserNameAsync(username);
+            var user = await _userRepository.GetUserByUserNameAsync(User.GetUserName());
 
             _mapper.Map(memberUpdateRequest, user);
 
@@ -62,6 +66,37 @@ namespace API.Controllers
             if (await _userRepository.SaveAllAsync()) return NoContent();
 
             return BadRequest("Failed to update user.");
+        }
+
+        [HttpPost("add-photo")]
+        public async Task<ActionResult<PhotoResponse>> AddPhoto(IFormFile file)
+        {
+            if(file == null)
+            {
+                return BadRequest("No file was passed.");
+            }
+            var user = await _userRepository.GetUserByUserNameAsync(User.GetUserName());
+            var result = await _photoService.AddPhotoAsync(file);
+
+            if (result.Error != null) return BadRequest(result.Error.Message);
+
+            var photo = new Photo
+            {
+                Url = result.SecureUrl.AbsoluteUri,
+                PublicId = result.PublicId
+            };
+
+            if(user.Photos.Count == 0)
+            {
+                photo.IsMain = true;
+            }
+
+            user.Photos.Add(photo);
+
+            if (await _userRepository.SaveAllAsync())
+                return CreatedAtRoute("GetUser", new { username = user.UserName },_mapper.Map<PhotoResponse>(photo));
+
+            return BadRequest("Problem adding photo");
         }
     }
 }
