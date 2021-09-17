@@ -1,6 +1,7 @@
 ﻿using API.Data;
 using API.Entities;
 using API.Extensions;
+using API.Helpers;
 using API.Interface;
 using API.Models;
 using AutoMapper;
@@ -29,17 +30,23 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// Get the list of all users
+        /// Get the list of the users on the current page
         /// </summary>
         /// <returns>List of all users</returns>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<MemberResponse>>> GetUsers()
+        public async Task<ActionResult<IEnumerable<MemberResponse>>> GetUsers([FromQuery] UserParams userParams)
         {
-            var users = await _userRepository.GetMembersAsync();
+            var user = await _userRepository.GetUserByUserNameAsync(User.GetUserName());
+            userParams.CurrentUserName = user.UserName;
+            if (string.IsNullOrEmpty(userParams.Gender))
+                userParams.Gender = user.Gender == "male" ? "female" : "male";
 
-            var usersToReturn = _mapper.Map<IEnumerable<MemberResponse>>(users);
+            var users = await _userRepository.GetMembersAsync(userParams);
 
-            return Ok(usersToReturn);
+            Response.AddPaginationHeader(users.CurrentPage, users.PageSize,
+                users.TotalCount, users.TotalPages);
+
+            return Ok(users);
         }
 
         /// <summary>
@@ -48,7 +55,7 @@ namespace API.Controllers
         /// <param name="userName">User name of a specific user</param>
         /// <returns>The data fro the </returns>
         [HttpGet("{userName}", Name = "GetUser")]
-        
+
         public async Task<ActionResult<MemberResponse>> GetUser(string userName)
         {
             return await _userRepository.GetMemberAsync(userName);
@@ -72,7 +79,7 @@ namespace API.Controllers
         [HttpPost("add-photo")]
         public async Task<ActionResult<PhotoResponse>> AddPhoto(IFormFile file)
         {
-            if(file == null)
+            if (file == null)
             {
                 return BadRequest("No file was passed.");
             }
@@ -87,7 +94,7 @@ namespace API.Controllers
                 PublicId = result.PublicId
             };
 
-            if(user.Photos.Count == 0)
+            if (user.Photos.Count == 0)
             {
                 photo.IsMain = true;
             }
@@ -95,7 +102,7 @@ namespace API.Controllers
             user.Photos.Add(photo);
 
             if (await _userRepository.SaveAllAsync())
-                return CreatedAtRoute("GetUser", new { username = user.UserName },_mapper.Map<PhotoResponse>(photo));
+                return CreatedAtRoute("GetUser", new { username = user.UserName }, _mapper.Map<PhotoResponse>(photo));
 
             return BadRequest("Problem adding photo");
         }
@@ -131,7 +138,7 @@ namespace API.Controllers
 
             if (photo.IsMain) return BadRequest("You cannot delete your main photo");
 
-            if(photo.PublicId != null)
+            if (photo.PublicId != null)
             {
                 var deleteResult = await _photoService.DeletePhotoAsync(photo.PublicId);
 
