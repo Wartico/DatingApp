@@ -34,7 +34,6 @@ namespace API.Data
         public async Task<PagedList<MemberResponse>> GetMembersAsync(UserParams userParams)
         {
             var query = _context.Users
-                .OrderBy(u => u.Id)
                 .AsQueryable();
 
             query = query.Where(u => u.UserName != userParams.CurrentUserName);
@@ -44,6 +43,12 @@ namespace API.Data
             var maxDob = DateTime.Today.AddYears(-userParams.MinAge);
 
             query = query.Where(u => u.DateOfBirth >= minDob && u.DateOfBirth <= maxDob);
+
+            query = userParams.OrderBy switch
+            {
+                "created" => query.OrderByDescending(u => u.Created),
+                _ => query.OrderByDescending(u => u.LastActive)
+            };
 
             return await PagedList<MemberResponse>.CreateAsync(query.ProjectTo<MemberResponse>(_mapper
                 .ConfigurationProvider).AsNoTracking(), 

@@ -36,7 +36,7 @@ namespace API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MemberResponse>>> GetUsers([FromQuery] UserParams userParams)
         {
-            var user = await _userRepository.GetUserByUserNameAsync(User.GetUserName());
+            var user = await _userRepository.GetUserByUserNameAsync(User.GetUsername());
             userParams.CurrentUserName = user.UserName;
             if (string.IsNullOrEmpty(userParams.Gender))
                 userParams.Gender = user.Gender == "male" ? "female" : "male";
@@ -65,7 +65,7 @@ namespace API.Controllers
         [HttpPut]
         public async Task<ActionResult> UpdateUser(MemberUpdateRequest memberUpdateRequest)
         {
-            var user = await _userRepository.GetUserByUserNameAsync(User.GetUserName());
+            var user = await _userRepository.GetUserByUserNameAsync(User.GetUsername());
 
             _mapper.Map(memberUpdateRequest, user);
 
@@ -83,7 +83,7 @@ namespace API.Controllers
             {
                 return BadRequest("No file was passed.");
             }
-            var user = await _userRepository.GetUserByUserNameAsync(User.GetUserName());
+            var user = await _userRepository.GetUserByUserNameAsync(User.GetUsername());
             var result = await _photoService.AddPhotoAsync(file);
 
             if (result.Error != null) return BadRequest(result.Error.Message);
@@ -110,7 +110,7 @@ namespace API.Controllers
         [HttpPut("set-main-photo/{photoId}")]
         public async Task<ActionResult> SetMainPhoto(int photoId)
         {
-            var user = await _userRepository.GetUserByUserNameAsync(User.GetUserName());
+            var user = await _userRepository.GetUserByUserNameAsync(User.GetUsername());
 
             var photo = user.Photos.FirstOrDefault(x => x.Id == photoId);
 
@@ -130,7 +130,7 @@ namespace API.Controllers
         [HttpDelete("delete-photo/{photoId}")]
         public async Task<ActionResult> DeletePhoto(int photoId)
         {
-            var user = await _userRepository.GetUserByUserNameAsync(User.GetUserName());
+            var user = await _userRepository.GetUserByUserNameAsync(User.GetUsername());
 
             var photo = user.Photos.FirstOrDefault(x => x.Id == photoId);
 
