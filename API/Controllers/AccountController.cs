@@ -1,6 +1,6 @@
 ﻿using API.Data;
 using API.Entities;
-using API.Interface;
+using API.Interfaces;
 using API.Models;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
